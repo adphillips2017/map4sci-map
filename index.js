@@ -3,7 +3,7 @@ import { geo_data } from './geojson/config.js';
 console.log('index.js loaded')
 
 /* @TODO:
-    navigation pane
+    navigation pane <- no built in way to accomplish this. 
     proper pop ups
     lines to look more like high ways
     font sizes
@@ -87,58 +87,30 @@ map.on('load', () => {
     });
 
     map.addLayer({
-        "id": "edges_level_1",
-        "type": "line",
-        "minzoom": 1,
-        "source": { "type": "geojson", "data": geo_data.edges },
-        "filter": [">=", "{level}", 1],
-        "layout": {},
-        "paint": {
-            "line-color": ['get', 'stroke'],
-            "line-width": 1,
-            "line-opacity": 0.9
-        },
-    });
-
-    map.addLayer({
-        "id": "edges_level_2",
-        "type": "line",
-        "minzoom": 2,
-        "source": { "type": "geojson", "data": geo_data.edges },
-        "filter": [">=", "{level}", 2],
-        "layout": {},
-        "paint": {
-            "line-color": ['get', 'stroke'],
-            "line-width": 1,
-            "line-opacity": 0.9
-        },
-    });
-
-    map.addLayer({
-        "id": "edges_level_4",
+        "id": "edges",
         "type": "line",
         "minzoom": 4,
         "source": { "type": "geojson", "data": geo_data.edges },
-        "filter": [">=", "{level}", 4],
+        //"filter": ["==", "level", "1"],
         "layout": {},
         "paint": {
-            "line-color": ['get', 'stroke'],
-            "line-width": 1,
-            "line-opacity": 0.9
+            //"line-color": ['get', 'stroke'],
+            "line-color": "#ffeba1",
+            "line-width": 3,
+            "line-opacity": 1
         },
     });
-
     map.addLayer({
-        "id": "edges_level_6",
+        "id": "edges_border",
         "type": "line",
-        "minzoom": 6,
+        "minzoom": 4,
         "source": { "type": "geojson", "data": geo_data.edges },
-        "filter": [">=", "{level}", 6],
         "layout": {},
         "paint": {
-            "line-color": ['get', 'stroke'],
+            "line-color": "#f9d776",
             "line-width": 1,
-            "line-opacity": 0.9
+            "line-opacity": 1,
+            "line-gap-width": 3
         },
     });
 
