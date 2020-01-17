@@ -73,7 +73,7 @@ map.on('load', () => {
                 "Roboto Regular"
             ],
             "text-max-width": 5,
-            "text-size": 12,
+            "text-size": 15,
             "text-anchor": "center",
             "text-radial-offset": 1
         },
@@ -142,7 +142,7 @@ map.on('load', () => {
     map.addLayer({
         "id": "node-labels",
         "type": "symbol",
-        "minzoom": 7,
+        "minzoom": 6,
         "source": { "type": "geojson", "data": geo_data.nodes },
         "layout": {
             "text-field": "{label}",
@@ -202,10 +202,10 @@ function addPopupOnClick(map, layer, field) {
     // When a click event occurs on a feature in the places layer, open a popup at the
     // location of the feature, with description HTML from its properties.
     map.on('click', layer, function (e) {
-        let description = e.features[0].properties[field];
+        let descriptionHTML = createPopulHTML(e.features[0].properties, field);
         new mapboxgl.Popup()
             .setLngLat(e.lngLat)
-            .setHTML(description)
+            .setHTML(descriptionHTML)
             .addTo(map);
     });
 
@@ -218,4 +218,15 @@ function addPopupOnClick(map, layer, field) {
     map.on('mouseleave', layer, function () {
         map.getCanvas().style.cursor = '';
     });
+}
+
+function createPopulHTML(description, field){
+    return `
+        <p class="popup-label">${capitalizeString(field)}</p>
+        <p>${description[field]}</p>
+    `
+}
+
+function capitalizeString(string){
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
