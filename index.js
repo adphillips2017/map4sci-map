@@ -7,6 +7,7 @@ console.log('index.js loaded')
     proper pop ups
     lines to look more like high ways
     font sizes
+    change color on hover <- captured the hover event, can't access feature id for some reason
 */
 
 var blankStyle = {
@@ -41,8 +42,14 @@ var map = new mapboxgl.Map({
     renderWorldCopies: false,
     dragRotate: false
 });
+var hoveredEdgeID = null;
 
 map.on('load', () => {
+    map.addSource('edges_source', {
+        'type': 'geojson',
+        'data': geo_data.edges
+    });
+
     map.addLayer({
         "id": "cluster",
         "type": "fill",
@@ -90,12 +97,18 @@ map.on('load', () => {
         "id": "edges",
         "type": "line",
         "minzoom": 4,
-        "source": { "type": "geojson", "data": geo_data.edges },
+        "source": "edges_source", //{ "type": "geojson", "data": geo_data.edges },
         //"filter": ["==", "level", "1"],
         "layout": {},
         "paint": {
             //"line-color": ['get', 'stroke'],
-            "line-color": "#ffeba1",
+            //"line-color": "#ffeba1",
+            "line-color": [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                'red',
+                'yellow'
+            ],
             "line-width": 3,
             "line-opacity": 1
         },
@@ -147,7 +160,38 @@ map.on('load', () => {
     // Add zoom controls (without rotation controls) to the map in the top-left position.
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-left');
 
-    // Testing.
+    // When the user moves their mouse over the edges layer, update the
+    // feature state for the feature under the mouse.
+    map.on('mousemove', 'edges', function (e) {
+        console.log('eee: ', e.features[0])
+        if (e.features.length > 0) {
+            if (hoveredEdgeID) {
+                map.setFeatureState(
+                    { source: 'edges_source', id: hoveredEdgeID },
+                    { hover: false }
+                );
+            }
+            hoveredEdgeID = e.features[0].properties.label;
+            map.setFeatureState(
+                { source: 'edges_source', id: hoveredEdgeID },
+                { hover: true }
+            );
+        }
+    });
+
+    // When the mouse leaves the edges layer, update the feature state of the
+    // previously hovered feature.
+    map.on('mouseleave', 'edges', function () {
+        if (hoveredEdgeID) {
+            map.setFeatureState(
+                { source: 'edges_source', id: hoveredEdgeID },
+                { hover: false }
+            );
+        }
+        hoveredEdgeID = null;
+    });
+
+    // For Testing.
     map.on('moveend', function (e) { console.log('Zoom Level: ', map.getZoom()) });
 
     addPopupOnClick(map, 'nodes', 'label');
