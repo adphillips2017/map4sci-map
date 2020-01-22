@@ -1,13 +1,12 @@
 import { geo_data } from './geojson/config.js';
-
 console.log('index.js loaded')
 
 /* @TODO:
+    check for alledges, add to layer 9 if so
     navigation pane <- no built in way to accomplish this. 
-    proper pop ups
-    lines to look more like high ways
-    font sizes
-    change color on hover <- captured the hover event, can't access feature id for some reason
+    proper pop ups <- method is built with basics, need design direction to finish
+
+    change color on hover? <- captured the hover event, can't access feature id for some reason
 */
 
 var blankStyle = {
@@ -42,14 +41,68 @@ var map = new mapboxgl.Map({
     renderWorldCopies: false,
     dragRotate: false
 });
-var hoveredEdgeID = null;
 
 map.on('load', () => {
+    addMapSources(map);
+    addMapClusters(map);
+    addMapEdges(map);
+    addMapNodes(map);
+
+    // Add zoom controls (without rotation controls) to the map in the top-left position.
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-left');
+
+    // For Testing.
+    map.on('moveend', function (e) { console.log('Zoom Level: ', map.getZoom()) });
+
+    addPopupOnClick(map, 'nodes', 'label');
+    addPopupOnClick(map, 'edges', 'label');
+});
+
+function addPopupOnClick(map, layer, field) {
+    // When a click event occurs on a feature in the places layer, open a popup at the
+    // location of the feature, with description HTML from its properties.
+    map.on('click', layer, function (e) {
+        let descriptionHTML = createPopulHTML(e.features[0].properties, field);
+        new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(descriptionHTML)
+            .addTo(map);
+    });
+
+    // Change the cursor to a pointer when the mouse is over the places layer.
+    map.on('mouseenter', layer, function () {
+        map.getCanvas().style.cursor = 'pointer';
+    });
+
+    // Change it back to a pointer when it leaves.
+    map.on('mouseleave', layer, function () {
+        map.getCanvas().style.cursor = '';
+    });
+}
+
+function createPopulHTML(description, field){
+    return `
+        <p class="popup-label">${capitalizeString(field)}</p>
+        <p>${description[field]}</p>
+    `
+}
+
+function capitalizeString(string){
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function addMapSources(map){
     map.addSource('edges_source', {
         'type': 'geojson',
         'data': geo_data.edges
     });
+    map.addSource('nodes_source', {
+        'type': 'geojson',
+        'data': geo_data.nodes
+    });
+}
 
+function addMapClusters(map){
     map.addLayer({
         "id": "cluster",
         "type": "fill",
@@ -92,141 +145,84 @@ map.on('load', () => {
             "line-opacity": 0.8
         },
     });
+}
 
-    map.addLayer({
-        "id": "edges",
-        "type": "line",
-        "minzoom": 4,
-        "source": "edges_source", //{ "type": "geojson", "data": geo_data.edges },
-        //"filter": ["==", "level", "1"],
-        "layout": {},
-        "paint": {
-            //"line-color": ['get', 'stroke'],
-            //"line-color": "#ffeba1",
-            "line-color": [
-                'case',
-                ['boolean', ['feature-state', 'hover'], false],
-                'red',
-                'yellow'
-            ],
-            "line-width": 3,
-            "line-opacity": 1
-        },
-    });
-    map.addLayer({
-        "id": "edges_border",
-        "type": "line",
-        "minzoom": 4,
-        "source": { "type": "geojson", "data": geo_data.edges },
-        "layout": {},
-        "paint": {
-            "line-color": "#f9d776",
-            "line-width": 1,
-            "line-opacity": 1,
-            "line-gap-width": 3
-        },
-    });
+function addMapEdges(map){
+    const lines = [
+        { 'level': 1    ,'color': '#FFEBA1'     ,'width': 3     ,'opacity':1.0    ,'borderColor':'#F9D776'    ,'borderWidth': 1 },
+        { 'level': 2    ,'color': '#FFEBA1'     ,'width': 3     ,'opacity':1.0    ,'borderColor':'#F9D776'    ,'borderWidth': 1 },
+        { 'level': 3    ,'color': '#F9D776'     ,'width': 2.5   ,'opacity':0.7 },
+        { 'level': 4    ,'color': '#F9D776'     ,'width': 2.5   ,'opacity':0.7 },
+        { 'level': 5    ,'color': 'gray'        ,'width': 2     ,'opacity':0.5 },
+        { 'level': 6    ,'color': 'gray'        ,'width': 2     ,'opacity':0.5 },
+        { 'level': 7    ,'color': 'gray'        ,'width': 1.5   ,'opacity':0.5 },
+        { 'level': 8    ,'color': 'gray'        ,'width': 1.5   ,'opacity':0.5 }
+    ]
 
-    map.addLayer({
-        "id": "nodes",
-        "type": "circle",
-        "minzoom": 6,
-        "source": { "type": "geojson", "data": geo_data.nodes },
-        "layout": {},
-        "paint": {
-            "circle-color": "black",
-            "circle-radius": 3
-        },
-    });
+    lines.forEach((line) => {
+        map.addLayer({
+            "id": "edges_" + line.level,
+            "type": "line",
+            "source": "edges_source",
+            "layout": {},
+            "paint": {
+                "line-color": line.color,
+                "line-width": line.width,
+                "line-opacity": line.opacity
+            },
+            "filter": ['==', "level", line.level],
+            "minzoom": line.level,
+        });
 
-    map.addLayer({
-        "id": "node-labels",
-        "type": "symbol",
-        "minzoom": 6,
-        "source": { "type": "geojson", "data": geo_data.nodes },
-        "layout": {
-            "text-field": "{label}",
-            "text-font": [
-                "Roboto Regular"
-            ],
-            "text-max-width": 5,
-            "text-size": 12,
-            "text-anchor": "left",
-            "text-radial-offset": 1
-        },
-        "paint": {},
-    });
-
-    // Add zoom controls (without rotation controls) to the map in the top-left position.
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-left');
-
-    // When the user moves their mouse over the edges layer, update the
-    // feature state for the feature under the mouse.
-    map.on('mousemove', 'edges', function (e) {
-        console.log('eee: ', e.features[0])
-        if (e.features.length > 0) {
-            if (hoveredEdgeID) {
-                map.setFeatureState(
-                    { source: 'edges_source', id: hoveredEdgeID },
-                    { hover: false }
-                );
-            }
-            hoveredEdgeID = e.features[0].properties.label;
-            map.setFeatureState(
-                { source: 'edges_source', id: hoveredEdgeID },
-                { hover: true }
-            );
+        if(line.borderWidth){
+            map.addLayer({
+                "id": "edges_border_" + line.level,
+                "type": "line",
+                "source": "edges_source",
+                "layout": {},
+                "paint": {
+                    "line-color": line.borderColor,
+                    "line-width": line.borderWidth,
+                    "line-opacity": line.opacity,
+                    "line-gap-width": line.width
+                },
+                "minzoom": line.level,
+                "filter": ['==', "level", line.level]
+            });
         }
-    });
-
-    // When the mouse leaves the edges layer, update the feature state of the
-    // previously hovered feature.
-    map.on('mouseleave', 'edges', function () {
-        if (hoveredEdgeID) {
-            map.setFeatureState(
-                { source: 'edges_source', id: hoveredEdgeID },
-                { hover: false }
-            );
-        }
-        hoveredEdgeID = null;
-    });
-
-    // For Testing.
-    map.on('moveend', function (e) { console.log('Zoom Level: ', map.getZoom()) });
-
-    addPopupOnClick(map, 'nodes', 'label');
-    addPopupOnClick(map, 'edges', 'label');
-});
-
-function addPopupOnClick(map, layer, field) {
-    // When a click event occurs on a feature in the places layer, open a popup at the
-    // location of the feature, with description HTML from its properties.
-    map.on('click', layer, function (e) {
-        let descriptionHTML = createPopulHTML(e.features[0].properties, field);
-        new mapboxgl.Popup()
-            .setLngLat(e.lngLat)
-            .setHTML(descriptionHTML)
-            .addTo(map);
-    });
-
-    // Change the cursor to a pointer when the mouse is over the places layer.
-    map.on('mouseenter', layer, function () {
-        map.getCanvas().style.cursor = 'pointer';
-    });
-
-    // Change it back to a pointer when it leaves.
-    map.on('mouseleave', layer, function () {
-        map.getCanvas().style.cursor = '';
     });
 }
 
-function createPopulHTML(description, field){
-    return `
-        <p class="popup-label">${capitalizeString(field)}</p>
-        <p>${description[field]}</p>
-    `
-}
+function addMapNodes(map){
+    for(let level = 1; level <= 9; level++) {
+        map.addLayer({
+            "id": "nodes_" + level,
+            "type": "circle",
+            "minzoom": level,
+            "source": "nodes_source",
+            "layout": {},
+            "paint": {
+                "circle-color": "black",
+                "circle-radius": 3
+            },
+            "filter": ["==", "level", level]
+        });
 
-function capitalizeString(string){
-    return string.charAt(0).toUpperCase() + string.slice(1);
+        map.addLayer({
+            "id": "node_labels_" + level,
+            "type": "symbol",
+            "minzoom": level,
+            "source": "nodes_source",
+            "layout": {
+                "text-field": "{label}",
+                "text-font": ["Roboto Regular"],
+                "text-max-width": ["get", "width"],
+                "text-size": { "type": "identity", "property": "textsize" },
+                "text-variable-anchor": ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"],
+                "text-justify": "auto",
+                "text-radial-offset": .25
+            },
+            "filter": ["==", "level", level]
+        });
+    }
 }

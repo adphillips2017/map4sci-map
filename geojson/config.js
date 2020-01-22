@@ -55,10 +55,23 @@ import lastfm_cluster from './lastfm/im_cluster.geojson';
 import lastfm_edges from './lastfm/im_edges.geojson';
 import lastfm_nodes from './lastfm/im_nodes.geojson';
 
-const DATA_CHOICE = 'map_data';
+// DATA_CHOICE = 'im_cleaned'
+import im_clusterBoundry from './im-cleaned/im_cluster_boundary.geojson';
+import im_cluster from './im-cleaned/im_cluster.geojson'
+import im_edges from './im-cleaned/im_edges.geojson';
+import im_nodes from './im-cleaned/im_nodes.geojson';
+
+const DATA_CHOICE = 'impred_lastfm';
 let geoData = {};
 
 switch (DATA_CHOICE) {
+    case('im_cleaned'): {
+        geoData.clusterBoundary = im_clusterBoundry;
+        geoData.cluster = im_cluster;
+        geoData.edges = im_edges;
+        geoData.nodes = im_nodes;
+        break;
+    }
     case ('map_data'): {
         geoData.clusterBoundary = md_clusterBoundry;
         geoData.cluster = md_cluster;
