@@ -100,18 +100,26 @@ function addMapSources(map){
         'type': 'geojson',
         'data': geo_data.nodes
     });
+    map.addSource('cluster_source', {
+        'type': 'geojson',
+        'data': geo_data.cluster
+    });
+    map.addSource('cluster_boundary_source', {
+        'type': 'geojson',
+        'data': geo_data.clusterBoundary
+    });
 }
 
 function addMapClusters(map){
     map.addLayer({
         "id": "cluster",
         "type": "fill",
-        "source": { "type": "geojson", "data": geo_data.cluster },
+        "source": "cluster_source",
         "layout": {},
         "paint": {
             "fill-color": ['get', 'fill'],
             "fill-opacity": 0.7,
-            "fill-outline-color": ['get', 'stroke'],
+            "fill-outline-color": ['get', 'stroke']
         },
     });
 
@@ -119,7 +127,7 @@ function addMapClusters(map){
         "id": "cluster-labels",
         "type": "symbol",
         "minzoom": 2,
-        "source": { "type": "geojson", "data": geo_data.cluster },
+        "source": "cluster_source",
         "layout": {
             "text-field": "{label}",
             "text-font": [
@@ -137,7 +145,7 @@ function addMapClusters(map){
         "id": "cluster_boundary",
         "type": "line",
         "minzoom": 3,
-        "source": { "type": "geojson", "data": geo_data.clusterBoundary },
+        "source": "cluster_boundary_source",
         "layout": {},
         "paint": {
             "line-color": ['get', 'stroke'],
@@ -145,6 +153,18 @@ function addMapClusters(map){
             "line-opacity": 0.8
         },
     });
+}
+
+const zoom = {
+    1: 3,
+    2: 5.5,
+    3: 6.5,
+    4: 7,
+    5: 7.4,
+    6: 7.7,
+    7: 8,
+    8: 8.2,
+    9: 8.5
 }
 
 function addMapEdges(map){
@@ -171,7 +191,7 @@ function addMapEdges(map){
                 "line-opacity": line.opacity
             },
             "filter": ['==', "level", line.level],
-            "minzoom": line.level,
+            "minzoom": zoom[line.level],
         });
 
         if(line.borderWidth){
@@ -186,7 +206,7 @@ function addMapEdges(map){
                     "line-opacity": line.opacity,
                     "line-gap-width": line.width
                 },
-                "minzoom": line.level,
+                "minzoom": zoom[line.level],
                 "filter": ['==', "level", line.level]
             });
         }
@@ -195,32 +215,33 @@ function addMapEdges(map){
 
 function addMapNodes(map){
     for(let level = 1; level <= 9; level++) {
-        map.addLayer({
-            "id": "nodes_" + level,
-            "type": "circle",
-            "minzoom": level,
-            "source": "nodes_source",
-            "layout": {},
-            "paint": {
-                "circle-color": "black",
-                "circle-radius": 3
-            },
-            "filter": ["==", "level", level]
-        });
+        // map.addLayer({
+        //     "id": "nodes_" + level,
+        //     "type": "circle",
+        //     "minzoom": zoom[level],
+        //     "source": "nodes_source",
+        //     "layout": {},
+        //     "paint": {
+        //         "circle-color": "black",
+        //         "circle-radius": 3
+        //     },
+        //     "filter": ["==", "level", level]
+        // });
 
         map.addLayer({
             "id": "node_labels_" + level,
             "type": "symbol",
-            "minzoom": level,
+            "minzoom": zoom[level],
             "source": "nodes_source",
             "layout": {
                 "text-field": "{label}",
-                "text-font": ["Roboto Regular"],
-                "text-max-width": ["get", "width"],
-                "text-size": { "type": "identity", "property": "textsize" },
-                "text-variable-anchor": ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"],
-                "text-justify": "auto",
-                "text-radial-offset": .25
+                "text-font": ["Open Sans Regular"],
+                "text-size": ["to-number", ["get", "fontsize"]],
+                //"text-variable-anchor": ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"],
+                "text-anchor": "center",
+                "text-justify": "center",
+                "text-allow-overlap": true,
+                //"text-radial-offset": .25,
             },
             "filter": ["==", "level", level]
         });

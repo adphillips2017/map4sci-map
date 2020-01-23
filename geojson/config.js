@@ -61,7 +61,7 @@ import im_cluster from './im-cleaned/im_cluster.geojson'
 import im_edges from './im-cleaned/im_edges.geojson';
 import im_nodes from './im-cleaned/im_nodes.geojson';
 
-const DATA_CHOICE = 'impred_lastfm';
+const DATA_CHOICE = 'direct_topics';
 let geoData = {};
 
 switch (DATA_CHOICE) {
